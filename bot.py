@@ -1,9 +1,5 @@
-import os
-import asyncio
 from telegram import Update
-from telegram.ext import (
-    Application, CommandHandler, MessageHandler,
-    filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 )
 from scraper import search_jobs, format_job
 

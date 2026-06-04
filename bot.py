@@ -1,6 +1,5 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-)
 from scraper import search_jobs, format_job
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")

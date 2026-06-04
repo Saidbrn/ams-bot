@@ -1,48 +1,46 @@
 import requests
+from bs4 import BeautifulSoup
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Accept": "application/json, text/plain, */*",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "de-AT,de;q=0.9",
-    "Referer": "https://jobs.ams.at/",
-    "Origin": "https://jobs.ams.at",
 }
 
 def search_jobs(keyword="", location="", max_results=10):
-    url = "https://jobs.ams.at/public/emps/api/v1/jobs"
-    params = {
-        "query": keyword,
-        "location": location,
-        "page": 0,
-        "size": max_results,
-    }
+    url = "https://jobs.ams.at/public/emps/jobs"
+    params = {}
+    if keyword:
+        params["query"] = keyword
+    if location:
+        params["location"] = location
+    params["page"] = 0
+
     try:
         r = requests.get(url, params=params, headers=HEADERS, timeout=15)
-        data = r.json()
+        soup = BeautifulSoup(r.text, "html.parser")
         jobs = []
-        if isinstance(data, list):
-            jobs = data
-        elif isinstance(data, dict):
-            jobs = data.get("content") or data.get("jobs") or data.get("data") or []
-        return jobs[:max_results]
+        cards = soup.select(".job-card, .stelle, .result-item, article")[:max_results]
+        for card in cards:
+            title   = card.select_one("h2, h3, .title, .beruf")
+            company = card.select_one(".company, .firma, .unternehmen")
+            loc     = card.select_one(".location, .ort, .arbeitsort")
+            link    = card.select_one("a")
+            jobs.append({
+                "title":   title.get_text(strip=True) if title else "—",
+                "company": company.get_text(strip=True) if company else "—",
+                "location": loc.get_text(strip=True) if loc else "—",
+                "url": "https://jobs.ams.at" + link["href"] if link and link.get("href","").startswith("/") else (link["href"] if link else ""),
+            })
+        return jobs
     except Exception as e:
         print(f"Error: {e}")
         return []
 
 def format_job(job):
-    title   = job.get("beruf") or job.get("title") or job.get("bezeichnung") or "—"
-    company = job.get("firma") or job.get("company") or job.get("unternehmen") or "—"
-    location= job.get("arbeitsort") or job.get("ort") or job.get("location") or "—"
-    email   = job.get("email") or job.get("bewerbungEmail") or "—"
-    link    = job.get("url") or job.get("link") or job.get("detailUrl") or ""
-    job_id  = job.get("id") or ""
-    if not link and job_id:
-        link = f"https://jobs.ams.at/public/emps/jobs/{job_id}"
-
     return (
-        f"💼 *{title}*\n"
-        f"🏢 {company}\n"
-        f"📍 {location}\n"
-        f"📧 {email}\n"
-        f"🔗 {link if link else 'N/A'}"
+        f"💼 *{job.get('title','—')}*\n"
+        f"🏢 {job.get('company','—')}\n"
+        f"📍 {job.get('location','—')}\n"
+        f"🔗 {job.get('url','N/A')}"
     )

@@ -26,4 +26,35 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("مثال: /search Elektriker")
         return
-    keyword =
+    keyword = " ".join(context.args)
+    await update.message.reply_text(f"كنبحث على: {keyword}...")
+    jobs = search_jobs(keyword=keyword, max_results=8)
+    if not jobs:
+        await update.message.reply_text(f"ماكاين والو لـ {keyword}")
+        return
+    for job in jobs:
+        await update.message.reply_text(format_job(job), parse_mode="Markdown")
+
+async def by_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("مثال: /city Wien")
+        return
+    city = " ".join(context.args)
+    await update.message.reply_text(f"كنبحث في: {city}...")
+    jobs = search_jobs(location=city, max_results=8)
+    if not jobs:
+        await update.message.reply_text(f"ماكاين والو في {city}")
+        return
+    for job in jobs:
+        await update.message.reply_text(format_job(job), parse_mode="Markdown")
+
+def main():
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("jobs", latest_jobs))
+    app.add_handler(CommandHandler("search", search))
+    app.add_handler(CommandHandler("city", by_city))
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
